@@ -287,20 +287,32 @@
             const emailRequired = checkbox.checked ? 'YES' : 'NO';
             
             var addressMsg = document.getElementById('addressMsg').textContent;
-            addressMsg = addressMsg.split('：')[1].trim();
-            const adminRegion = document.getElementById('adminRegion').textContent.split("：")[1].trim();
+            addressMsg = addressMsg.split('：')[1]?.trim() || '';
+            const adminRegion = document.getElementById('adminRegion').textContent.split("：")[1]?.trim() || '';
 			//var [addressMsg, adminRegion] = searchResult2(geocoder.getLocation(coords));
             
             var coords = map.getCenter();
             var pointLng = coords.getLng(); 
             var pointLat = coords.getLat();
             
+            // 经纬度校验
+            const lng = parseFloat(pointLng);
+            const lat = parseFloat(pointLat);
+            const isValidLng = !isNaN(lng) && lng >= -180 && lng <= 180;
+            const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
+            
             const statusFrame = document.getElementById('statusFrame');
+            const timestamp = new Date().toLocaleString();
             
             //alert( company + name + email + emailRequired + pointLng + pointLat + addressMsg + adminRegion);
             
-            const timestamp = new Date().toLocaleString();
-            const submitInfo = `${timestamp} - 提交信息: 公司: ${company} 姓名: ${name}, 邮箱: ${email}, 发送到邮箱: ${emailRequired}, 详细地址: ${addressMsg}, 行政区: ${adminRegion}, 中心经度: ${pointLng}, 纬度: ${pointLat}`
+            if (!isValidLng || !isValidLat) {
+                const errorInfo = `${timestamp} - 错误: 经纬度无效，未发起请求 (lng=${pointLng}, lat=${pointLat})`;
+                statusFrame.innerHTML += `<p class="error">${errorInfo}</p>`;
+                return; // 阻止请求
+            }
+            
+            const submitInfo = `${timestamp} - 提交信息: 公司: ${company} 姓名: ${name}, 邮箱: ${email}, 发送到邮箱: ${emailRequired}, 详细地址: ${addressMsg}, 行政区: ${adminRegion}, 中心经度: ${pointLng}, 纬度: ${pointLat}`;
             statusFrame.innerHTML += `<p>${submitInfo}</p>`;
             
             const url = 'https://storm-design-request-mail.longlovemyu.com';
@@ -323,15 +335,13 @@
                     }
                 })
                 .then(data => {
-                    const timestamp = new Date().toLocaleString();
-                    const successInfo = `${timestamp} - 请求成功，返回的数据：${data}`;
+                    const successInfo = `${new Date().toLocaleString()} - 请求成功，返回的数据：${data}`;
                     statusFrame.innerHTML += `<p class="success">${successInfo}</p>`;
 
                     form.reset(); // 重置表单
                 })
                 .catch((error) => {
-                    const timestamp = new Date().toLocaleString();
-                    const errorInfo = `${timestamp} - 请求失败，错误信息：${error.message}`;
+                    const errorInfo = `${new Date().toLocaleString()} - 请求失败，错误信息：${error.message}`;
                     statusFrame.innerHTML += `<p class="error">${errorInfo}</p>`;
                 });
         });
